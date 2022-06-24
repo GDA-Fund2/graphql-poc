@@ -1,0 +1,29 @@
+type Query {
+    test: String
+    lobEvents:[lobEvent]
+}
+
+type lobEvent {
+    quoteNo: ID!
+    eventNo: Int
+    orderId: Int
+    originalOrderId: Int
+    side: Int
+    price: Float
+    size: Float
+    lobAction: Int
+    eventTimestamp: Int
+    sendTimestamp: Int
+    receiveTimestamp: Int
+    orderType: Int
+    isImplied: Int
+    orderExecuted: Int
+    executionPrice: Float
+    executedSize: Float
+    aggressorSide: Int
+    matchingOrderId: Int
+    oldOrderId: Int
+    tradeId: Int
+    sizeAhead: Float
+    ordersAhead: Int
+}

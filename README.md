@@ -1,0 +1,2 @@
+# GraphQL PoC
+This repository serves as a proof of concept for the GraphQL wrapper around L3 Atom. It is not meant for scale or is the ideal end result for a production application, rather it is a starting point to demonstrate to our community what our idea is for a server that interacts with our data lake. This started in a [repository maintained by KX](https://github.com/sbruce01/GDA-Websocket), but has since been migrated as the scope expanded. Much of the financial data interaction was written by [Samuel Bruce](https://github.com/sbruce01).

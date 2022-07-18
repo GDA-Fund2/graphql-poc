@@ -1,3 +1,6 @@
+keys/*
+!keys/README.md
+
 # Logs
 logs
 *.log

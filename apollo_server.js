@@ -2,8 +2,15 @@ const { ApolloServer, gql } = require('apollo-server');
 const { response } = require('express');
 const fetch = (...args) =>
   import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const Web3 = require('web3');
 
-const baseURL = `http://10.90.61.143:5005`
+require('dotenv').config();
+const baseURL = process.env.KX_ENDPOINT;
+const infura_ws_endpoint = process.env.INFURA_WS_ENDPOINT;
+const infura_rest_endpoint = process.env.INFURA_REST_ENDPOINT;
+const web3 = new Web3(new Web3.providers.WebsocketProvider(infura_ws_endpoint));
+
+const typeDefs = require('./schema');
 
 function getFilters(info) {
     var response = []
@@ -37,58 +44,6 @@ function getArgumentsAndBuildQuery(args) {
     return wClause
 }
 
-const typeDefs = gql`
-    type Query {
-        trade(startTime: String, endTime: String, symbols: [String!], exchange: [String!]): [Trade!]!
-        order(startTime: String, endTime: String, symbols: [String!], exchange: [String!]): [Order!]!
-        ethereum_transactions: [EthereumTransaction!]
-    }
-
-    type Trade {
-        date: String!
-        time: String!
-        sym: String!
-        orderID: String!
-        price: Float!
-        size: Float!
-        tradeID: String!
-        side: String!        
-        exchange: String!
-    }
-
-    type Order {
-        date: String!
-        time: String!
-        sym: String!
-        orderID: String!
-        price: Float!
-        size: Float!    
-        side: String!
-        action: String!
-        orderType: String!
-        exchange: String!
-    }
-
-    type BlockData {
-        block_num: Int!
-        block_hash: String!
-        timestamp: Int!
-        miner: String!
-        parent_hash: String!
-        num_transactions: Int!
-    }
-
-    type EthereumTransaction {
-        block_data: BlockData
-        tx_hash: String!
-        from: String!
-        to: String!
-        gas: Int!
-        gas_price: Int!
-        value: Int!
-    }
-`;
-
 const resolvers = {
     Query: {
       trade: (_, args, context, info) => {
@@ -113,18 +68,33 @@ const resolvers = {
         console.log(`${baseURL}/getData?tbl=order&${wClause}${filters}`)
         return fetch(`${baseURL}/getData?${wClause}${filters}`).then(res => res.json())
       },
-      ethereum_transactions: (_, args, context, info) => {
-        filters = getFilters(info)
-        wClause = getArgumentsAndBuildQuery(args)
-        if (!wClause.length) {
-            filters = 'columns='.concat(filters)
-        } else {
-            filters = '&columns='.concat(filters)
-        }
-        console.log(`${baseURL}/getData?tbl=ethereum&${wClause}${filters}`)
-        return fetch(`${baseURL}/getData?${wClause}${filters}`).then(res => res.json())
+      ethereum: (_, args, context, info) => {
+        return 0;
       }
     },
+    Ethereum: {
+      account: (_, args, context, info) => {
+        res = {}
+        res.address = args.address
+        res.balance = web3.eth.getBalance(args.address)
+        return res
+      },
+      transaction: (_, args, context, info) => {
+        return web3.eth.getTransaction(args.hash)
+      },
+      block: (_, args, context, info) => {
+        if (args.hash) {
+            return web3.eth.getBlock(args.hash, returnTransactionObjects = true)
+        } else {
+            return web3.eth.getBlock(args.number, returnTransactionObjects = true)
+        }
+      }
+    },
+    Block: {
+      transactions: (block, args, context, info) => {
+        return block.transactions
+      }
+    }
   }
 
 const server = new ApolloServer({ typeDefs, resolvers, cache: "bounded", introspection: true });

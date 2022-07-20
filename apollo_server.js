@@ -8,7 +8,7 @@ require('dotenv').config();
 const baseURL = process.env.KX_ENDPOINT;
 const infura_ws_endpoint = process.env.INFURA_WS_ENDPOINT;
 const infura_rest_endpoint = process.env.INFURA_REST_ENDPOINT;
-const web3 = new Web3(new Web3.providers.WebsocketProvider(infura_ws_endpoint));
+const web3 = new Web3(new Web3.providers.HttpProvider(infura_rest_endpoint));
 
 const typeDefs = require('./schema');
 
@@ -97,7 +97,13 @@ const resolvers = {
     }
   }
 
-const server = new ApolloServer({ typeDefs, resolvers, cache: "bounded", introspection: true });
+const server = new ApolloServer({ 
+  typeDefs, 
+  resolvers, 
+  cache: "bounded", 
+  introspection: true,
+  healthCheckPath: "/health",
+});
 
 // The `listen` method launches a web server.
 server.listen().then(({ url }) => {

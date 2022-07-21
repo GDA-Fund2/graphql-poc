@@ -1,4 +1,4 @@
-const {gql} = require('apollo-server');
+import {gql} from 'apollo-server';
 
 const typeDefs = gql`
     type Query {
@@ -8,6 +8,54 @@ const typeDefs = gql`
         order(startTime: String, endTime: String, symbols: [String!], exchange: [String!]): [Order!]!
         "Raw on-chain data from Ethereum"
         ethereum: Ethereum
+    }
+
+    type Subscription {
+        "Recent trades"
+        trades(exchange: String): LiveTrade
+        lobEvents(exchange: String): LiveLob
+    }
+
+    type LiveTrade {
+        "ID of the aggressor order, if provided"
+        order_id: String
+        "Price of the trade"
+        price: Float
+        "ID of the trade, if provided"
+        trade_id: String
+        "POSIX timestamp of the trade"
+        timestamp: String
+        "Side of the aggressor order -- 1 is buy, 2 is sell"
+        side: Int
+        "Size of the trade"
+        size: Float
+        "The original message carried along with the trade, if provided"
+        msg_original_type: String
+    } 
+
+    type LiveLob {
+        quote_no: Int
+        event_no: Int
+        order_id: String
+        original_order_id: String,
+        side: Int,
+        price: Float,
+        size: Float,
+        lob_action: Int,
+        event_timestamp: String,
+        send_timestamp: String,
+        receive_timestamp: String,
+        order_type: Int,
+        is_implied: Int,
+        order_executed: Int,
+        execution_price: Float,
+        executed_size: Float,
+        aggressor_side: Int,
+        matching_order_id: String,
+        old_order_id: String,
+        trade_id: String,
+        size_ahead: Float,
+        orders_ahead: Int
     }
 
     type Trade {
@@ -149,4 +197,4 @@ const typeDefs = gql`
     }
 `;
 
-module.exports = typeDefs;
+export default typeDefs;

@@ -1,111 +1,68 @@
-const { ApolloServer, gql } = require('apollo-server');
-const { response } = require('express');
-const fetch = (...args) =>
-  import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const Web3 = require('web3');
+import { ApolloServer } from 'apollo-server-express';
+import { createServer, ServerResponse } from 'http';
+import express from 'express';
+import { ApolloServerPluginDrainHttpServer } from "apollo-server-core";
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { WebSocketServer } from 'ws';
+import { useServer } from 'graphql-ws/lib/use/ws';
+import resolvers from './resolvers.js';
+import typeDefs from './schema.js';
+import RedisSubscriber from './redis_subscriber.js';
+import {PubSub} from "graphql-subscriptions";
 
-require('dotenv').config();
-const baseURL = process.env.KX_ENDPOINT;
-const infura_ws_endpoint = process.env.INFURA_WS_ENDPOINT;
-const infura_rest_endpoint = process.env.INFURA_REST_ENDPOINT;
-const web3 = new Web3(new Web3.providers.HttpProvider(infura_rest_endpoint));
+const pubsub = new PubSub();
 
-const typeDefs = require('./schema');
+const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-function getFilters(info) {
-    var response = []
-    user_functions = info.operation.selectionSet.selections
-        for (let i = 0; i < user_functions.length; i++){
-            if (user_functions[i].name.value===info.fieldName) {
-                for (let j = 0; j < user_functions[i].selectionSet.selections.length; j++){
-                    response.push(user_functions[i].selectionSet.selections[j].name.value)
-                }                
-            }
-        }
-    return response.join([seperator = ','])
+const app = express();
+const httpServer = createServer(app);
+
+import topics from './topics.js';
+
+const wsServer = new WebSocketServer({
+  server: httpServer,
+  path: '/'
+})
+
+const serverCleanup = useServer({ schema }, wsServer);
+
+for (const exchange of topics.exchanges) {
+  for (const feed of topics.feeds) {
+    const redisSubscriber = new RedisSubscriber(exchange, feed, pubsub);
+    redisSubscriber.run();
   }
-
-function getArgumentsAndBuildQuery(args) {
-    const mapping = { startTime: 'sd', endTime: 'ed', symbols: 'ids', exchange: 'exc' }
-    wClause = ''
-    for (const element in args) {
-        if (args[element] != null) {
-            wClause = wClause.concat(mapping[element])
-            wClause = wClause.concat('=')
-            if (Array.isArray(args[element])) {
-                wClause = wClause.concat(args[element].join([separator = ',']))
-            } else {
-                wClause = wClause.concat(args[element])
-            }
-            wClause = wClause.concat('&')    
-        }
-    }
-    wClause = wClause.slice(0, -1)
-    return wClause
 }
 
-const resolvers = {
-    Query: {
-      trade: (_, args, context, info) => {
-        filters = getFilters(info)
-        wClause = getArgumentsAndBuildQuery(args)
-        if (!wClause.length) {
-            filters = 'columns='.concat(filters)
-        } else {
-            filters = '&columns='.concat(filters)
-        }
-        console.log(`${baseURL}/getData?${wClause}${filters}`)
-        return fetch(`${baseURL}/getData?${wClause}${filters}`).then(res => res.json())
-      },
-      order: (_, args, context, info) => {
-        filters = getFilters(info)
-        wClause = getArgumentsAndBuildQuery(args)
-        if (!wClause.length) {
-            filters = 'columns='.concat(filters)
-        } else {
-            filters = '&columns='.concat(filters)
-        }
-        console.log(`${baseURL}/getData?tbl=order&${wClause}${filters}`)
-        return fetch(`${baseURL}/getData?${wClause}${filters}`).then(res => res.json())
-      },
-      ethereum: (_, args, context, info) => {
-        return 0;
-      }
-    },
-    Ethereum: {
-      account: (_, args, context, info) => {
-        res = {}
-        res.address = args.address
-        res.balance = web3.eth.getBalance(args.address)
-        return res
-      },
-      transaction: (_, args, context, info) => {
-        return web3.eth.getTransaction(args.hash)
-      },
-      block: (_, args, context, info) => {
-        if (args.hash) {
-            return web3.eth.getBlock(args.hash, returnTransactionObjects = true)
-        } else {
-            return web3.eth.getBlock(args.number, returnTransactionObjects = true)
-        }
-      }
-    },
-    Block: {
-      transactions: (block, args, context, info) => {
-        return block.transactions
-      }
-    }
-  }
-
-const server = new ApolloServer({ 
-  typeDefs, 
-  resolvers, 
-  cache: "bounded", 
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  cache: "bounded",
+  context: ({req, res}) => {return {req, res, pubsub}},
   introspection: true,
   healthCheckPath: "/health",
+  csrfPrevention: true,
+  plugins: [
+    ApolloServerPluginDrainHttpServer({ httpServer }),
+
+    {
+      async serverWillStart() {
+        return {
+          async drainServer() {
+            await serverCleanup().dispose();
+          }
+        }
+      }
+    }
+  ]
 });
 
-// The `listen` method launches a web server.
-server.listen().then(({ url }) => {
-  console.log(`🚀  Server ready at ${url}`);
+await server.start();
+server.applyMiddleware({ app, path: '/' });
+
+const PORT = 4000;
+
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`);
 });
+
+export default pubsub;

@@ -18,8 +18,6 @@ const topics = {
         "ethereum"
     ],
     "feeds" : [
-        "normalised",
-        "raw",
         "trades"
     ]
 }

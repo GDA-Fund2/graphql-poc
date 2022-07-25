@@ -12,8 +12,23 @@ const typeDefs = gql`
 
     type Subscription {
         "Recent trades"
-        trades(exchange: String): LiveTrade
-        lobEvents(exchange: String): LiveLob
+        trades(exchange: Exchange): LiveTrade
+    }
+
+    enum Exchange {
+        APOLLOX,
+        BINANCE,
+        BITFINEX,
+        BYBIT,
+        COINBASE,
+        DERIBIT,
+        DYDX,
+        FTX,
+        HUOBI,
+        KRAKEN,
+        KUCOIN,
+        OKEX,
+        PHEMEX
     }
 
     type LiveTrade {

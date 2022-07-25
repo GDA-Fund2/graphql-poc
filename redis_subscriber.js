@@ -2,7 +2,7 @@ import Redis from 'ioredis'
 import os from 'os';
 
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({path: './keys/.env'});
 
 const mappings = {
     "normalised": "lobEvents",

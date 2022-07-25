@@ -19,6 +19,20 @@ const httpServer = createServer(app);
 
 import topics from './topics.js';
 
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
+app.get('/health', (req, res) => {
+    res.send('OK');
+})
+
+app.get('/ready', (req, res) => {
+    res.send('OK');
+})
+
 const wsServer = new WebSocketServer({
   server: httpServer,
   path: '/'
@@ -39,8 +53,6 @@ const server = new ApolloServer({
   cache: "bounded",
   context: ({req, res}) => {return {req, res, pubsub}},
   introspection: true,
-  healthCheckPath: "/health",
-  csrfPrevention: true,
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
 

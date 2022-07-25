@@ -1,7 +1,7 @@
 import Web3 from 'web3';
 import dotenv from 'dotenv';
 import pubsub from './apollo_server.js';
-dotenv.config();
+dotenv.config({path: './keys/.env'});
 const fetch = (...args) =>
     import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
@@ -13,7 +13,7 @@ const web3 = new Web3(new Web3.providers.HttpProvider(infura_rest_endpoint));
 
 function getFilters(info) {
     var response = []
-    user_functions = info.operation.selectionSet.selections
+    let user_functions = info.operation.selectionSet.selections
     for (let i = 0; i < user_functions.length; i++) {
         if (user_functions[i].name.value === info.fieldName) {
             for (let j = 0; j < user_functions[i].selectionSet.selections.length; j++) {
@@ -21,12 +21,12 @@ function getFilters(info) {
             }
         }
     }
-    return response.join([seperator = ','])
+    return response.join([','])
 }
 
 function getArgumentsAndBuildQuery(args) {
     const mapping = { startTime: 'sd', endTime: 'ed', symbols: 'ids', exchange: 'exc' }
-    wClause = ''
+    let wClause = ''
     for (const element in args) {
         if (args[element] != null) {
             wClause = wClause.concat(mapping[element])
@@ -46,8 +46,8 @@ function getArgumentsAndBuildQuery(args) {
 const resolvers = {
     Query: {
         trade: (_, args, context, info) => {
-            filters = getFilters(info)
-            wClause = getArgumentsAndBuildQuery(args)
+            let filters = getFilters(info)
+            let wClause = getArgumentsAndBuildQuery(args)
             if (!wClause.length) {
                 filters = 'columns='.concat(filters)
             } else {
@@ -57,8 +57,8 @@ const resolvers = {
             return fetch(`${baseURL}/getData?${wClause}${filters}`).then(res => res.json())
         },
         order: (_, args, context, info) => {
-            filters = getFilters(info)
-            wClause = getArgumentsAndBuildQuery(args)
+            let filters = getFilters(info)
+            let wClause = getArgumentsAndBuildQuery(args)
             if (!wClause.length) {
                 filters = 'columns='.concat(filters)
             } else {
@@ -97,14 +97,10 @@ const resolvers = {
     Subscription: {
         trades: {
             subscribe: (_, args) => {
-                return pubsub.asyncIterator([`${args.exchange}-trades`])
+                console.log(args.exchange)
+                return pubsub.asyncIterator([`${args.exchange.toLowerCase()}-trades`])
             }
         },
-        lobEvents: {
-            subscribe: (_, args) => {
-                return pubsub.asyncIterator([`${args.exchange}-normalised`])
-            }
-        }
     }
 }
 

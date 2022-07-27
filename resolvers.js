@@ -25,7 +25,7 @@ function getFilters(info) {
 }
 
 function getArgumentsAndBuildQuery(args) {
-    const mapping = { startTime: 'sd', endTime: 'ed', symbols: 'ids', exchange: 'exc' }
+    const mapping = { symbols: 'ids', exchange: 'exc' }
     let wClause = ''
     for (const element in args) {
         if (args[element] != null) {

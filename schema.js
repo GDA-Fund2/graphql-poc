@@ -3,9 +3,9 @@ import {gql} from 'apollo-server';
 const typeDefs = gql`
     type Query {
         "Recent trades"
-        trade(startTime: String, endTime: String, symbols: [String!], exchange: [String!]): [Trade!]!
+        trade(symbols: [String!], exchange: [String!]): [Trade!]!
         "Order book update events"
-        order(startTime: String, endTime: String, symbols: [String!], exchange: [String!]): [Order!]!
+        order(symbols: [String!], exchange: [String!]): [Order!]!
         "Raw on-chain data from Ethereum"
         ethereum: Ethereum
     }
